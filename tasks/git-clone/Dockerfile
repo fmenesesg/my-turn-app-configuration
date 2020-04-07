@@ -6,6 +6,3 @@ RUN apk --update add git less openssh && \
 
 VOLUME /git
 WORKDIR /git
-
-ENTRYPOINT ["git"]
-CMD ["--help"]
