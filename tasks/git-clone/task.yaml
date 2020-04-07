@@ -8,6 +8,7 @@ spec:
   workspaces:
   - name: source-code
     description: The git repo will be cloned onto the volume backing this workspace
+    mountPath: /git/source-code
   inputs:
     params:
     - name: url
@@ -36,6 +37,7 @@ spec:
   - name: clone
     image: quay.io/rshop/git-alpine:master
     script: |
+      #!/usr/bin/env sh
       DESTINATION_DIR="$(workspaces.source-code.path)/$(inputs.params.subdirectory)"
       cleandir() {
         # Delete any existing contents of the repo directory if it exists.
