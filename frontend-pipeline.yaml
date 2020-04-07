@@ -1,0 +1,21 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: frontend-pipeline
+  namespace: my-turn-app
+spec:
+  params:
+    - name: git
+      type: git
+    - name: context-dir
+      type: string
+  resources:
+    - name: app-git
+      type: git
+    - name: app-image
+      type: image
+  tasks:
+    - name: git-pull
+    - name: unit-test-and-build
+    - name: update-deploy
+    - name: test-e2e
