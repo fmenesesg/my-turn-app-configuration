@@ -3,8 +3,8 @@ FROM alpine:latest
 RUN apk --update add npm && \
     rm -rf /var/lib/apt/lists/* && \
     rm /var/cache/apk/* && \
-    mkdir -p /tekton/results && \
-    chmod -R 755 /tekton
+    mkdir -p /workspace /tekton/results && \
+    chmod -R 755 /tekton /workspace
 
 VOLUME /src
 WORKDIR /src
