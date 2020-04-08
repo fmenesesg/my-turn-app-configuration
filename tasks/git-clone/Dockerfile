@@ -3,7 +3,7 @@ FROM alpine:latest
 RUN apk --update add git less openssh && \
     rm -rf /var/lib/apt/lists/* && \
     rm /var/cache/apk/* && \
-    mkdir -p /tekton && \
+    mkdir -p /tekton/results && \
     chmod -R 755 /tekton
 
 VOLUME /src
