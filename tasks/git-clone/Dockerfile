@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-RUN apk --update add git less openssh && \
+RUN apk --update add git less openssh tree && \
     rm -rf /var/lib/apt/lists/* && \
     rm /var/cache/apk/* && \
     mkdir -p /workspace /tekton/results && \
