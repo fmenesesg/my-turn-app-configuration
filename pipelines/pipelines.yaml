@@ -24,7 +24,7 @@ items:
             workspace: dependencies
       - name: deploy-frontend
         params:
-          - name: layer
+          - name: layerName
             value: frontend
           - name: tag
             value: $(tasks.unit-test-and-build-image.results.tag)
@@ -68,7 +68,7 @@ items:
             workspace: dependencies
       - name: deploy-backend
         params:
-          - name: layer
+          - name: layerName
             value: backend
           - name: tag
             value: $(tasks.unit-test-and-build-image.results.tag)
