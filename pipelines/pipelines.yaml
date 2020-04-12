@@ -23,6 +23,8 @@ items:
           - name: npm-modules
             workspace: dependencies
       - name: deploy-frontend
+        runAfter:
+        - unit-test-and-build-image
         params:
           - name: layerName
             value: frontend
@@ -32,6 +34,9 @@ items:
           kind: Task
           name: oc-rollout-layer
       - name: e2e-test
+        runAfter:
+        - unit-test-and-build-image
+        - deploy-frontend
         params:
           - name: url
             value: $(params.git-url)
@@ -67,6 +72,8 @@ items:
           - name: npm-modules
             workspace: dependencies
       - name: deploy-backend
+        runAfter:
+        - unit-test-and-build-image
         params:
           - name: layerName
             value: backend
