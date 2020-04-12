@@ -1,0 +1,49 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: vue-e2e-test
+  namespace: my-turn-app
+spec:
+  inputs:
+    params:
+      - description: git url to clone
+        name: url
+        type: string
+      - default: master
+        description: 'git revision to checkout (branch, tag, sha, ref…)'
+        name: revision
+        type: string
+      - name: remote-url
+        type: string
+  steps:
+    - image: 'quay.io/rshop/toolchain-cli-alpine:master'
+      name: clone-code
+      resources: {}
+      script: >
+        #!/usr/bin/env sh
+
+        git clone --branch "$(inputs.params.revision)" "$(inputs.params.url)"
+        /src/my-turn-app
+
+        tree -L 1 /src/my-turn-app/frontend
+      volumeMounts:
+        - mountPath: /src
+          name: source-code
+    - image: 'quay.io/rshop/npm-alpine:master'
+      name: test-lint-and-build
+      resources: {}
+      script: |
+        #!/usr/bin/env sh
+        cd /src/my-turn-app/frontend
+        npm install
+        npm run test:e2e-remote "$(inputs.params.remote-url)"
+      volumeMounts:
+        - mountPath: /src
+          name: source-code
+  volumes:
+    - emptyDir: {}
+      name: source-code
+  workspaces:
+    - description: The node packages needed for this app
+      mountPath: /src/my-turn-app/frontend/node_modules
+      name: npm-modules

@@ -1,0 +1,36 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: oc-rollout-layer
+  namespace: my-turn-app
+spec:
+  inputs:
+    params:
+      - name: layerName
+        type: string
+      - name: tag
+        type: string
+  results:
+    - description: Deployed App URL
+      name: app-url
+  steps:
+    - image: 'quay.io/rshop/toolchain-cli-alpine:master'
+      name: get-backend-url
+      resources: {}
+      script: >
+        #!/usr/bin/env sh 
+
+        echo "oc patch dc frontend -p '{ \"spec\": { \"template\": { \"spec\": {
+        \"containers\": [{ \"name\": \"frontend\", \"image\":
+        \"$(inputs.params.tag)\" }] } } } }'" | /bin/sh - 
+
+        oc rollout latest "dc/$(inputs.params.layerName)" 
+
+        oc rollout status "dc/$(inputs.params.layerName)" -w
+
+        export PROTOCOLO=`if [ "$(oc get route frontend -o jsonpath='{
+        .spec.tls.termination }')" != "" ]; then echo "https"; else echo "http";
+        fi`
+
+        echo "$PROTOCOLO://$(oc get route frontend -o jsonpath='{ .spec.host
+        }')" | tee /tekton/results/app-url

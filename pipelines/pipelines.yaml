@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: tekton.dev/v1alpha1
+  kind: Pipeline
+  metadata:
+    name: frontend-pipeline
+    namespace: my-turn-app
+  spec:
+    params:
+      - default: 'https://gitlab.com/caio.dona/my-turn-app.git'
+        name: git-url
+        type: string
+    tasks:
+      - name: unit-test-and-build-image
+        params:
+          - name: url
+            value: $(params.git-url)
+        taskRef:
+          kind: Task
+          name: build-frontend-image
+        workspaces:
+          - name: npm-modules
+            workspace: dependencies
+      - name: deploy-frontend
+        params:
+          - name: layer
+            value: frontend
+          - name: tag
+            value: $(tasks.unit-test-and-build-image.results.tag)
+        taskRef:
+          kind: Task
+          name: oc-rollout-layer
+      - name: e2e-test
+        params:
+          - name: url
+            value: $(params.git-url)
+          - name: remote-url
+            value: $(tasks.deploy-frontend.results.app-url)
+        taskRef:
+          kind: Task
+          name: vue-e2e-test
+        workspaces:
+          - name: npm-modules
+            workspace: dependencies
+    workspaces:
+      - name: dependencies
+- apiVersion: tekton.dev/v1alpha1
+  kind: Pipeline
+  metadata:
+    name: backend-pipeline
+    namespace: my-turn-app
+  spec:
+    params:
+      - default: 'https://gitlab.com/caio.dona/my-turn-app.git'
+        name: git-url
+        type: string
+    tasks:
+      - name: unit-test-and-build-image
+        params:
+          - name: url
+            value: $(params.git-url)
+        taskRef:
+          kind: Task
+          name: build-backend-image
+        workspaces:
+          - name: npm-modules
+            workspace: dependencies
+      - name: deploy-backend
+        params:
+          - name: layer
+            value: backend
+          - name: tag
+            value: $(tasks.unit-test-and-build-image.results.tag)
+        taskRef:
+          kind: Task
+          name: oc-rollout-layer
+    workspaces:
+      - name: dependencies

@@ -1,0 +1,12 @@
+FROM alpine:latest
+
+# Install dependencies and tools
+RUN apk --update --no-cache add npm && \
+    rm -rf /var/lib/apt/lists/*
+
+# Prepare folders for Tekton pipelines steps
+RUN mkdir -p /workspace /tekton/results && \
+    chmod -R 775 /tekton /workspace
+
+VOLUME /src
+WORKDIR /src

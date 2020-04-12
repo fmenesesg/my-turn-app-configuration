@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: List
+items:
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: backend
+    namespace: my-turn-app
+    labels:
+      app: backend
+      app.kubernetes.io/component: backend
+      app.kubernetes.io/instance: backend
+      app.kubernetes.io/part-of: my-turn-app
+      app.openshift.io/runtime: nodejs
+      app.openshift.io/runtime-version: 10-SCL
+    annotations:
+      app.openshift.io/vcs-ref: master
+      app.openshift.io/vcs-uri: 'https://gitlab.com/caio.dona/my-turn-app.git'
+  spec:
+    ports:
+      - name: 8080-tcp
+        protocol: TCP
+        port: 8080
+        targetPort: 8080
+    selector:
+      app: backend
+      deploymentconfig: backend
+    type: ClusterIP
+    sessionAffinity: None
+  status:
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: frontend
+    namespace: my-turn-app
+    labels:
+      app: frontend
+      app.kubernetes.io/component: frontend
+      app.kubernetes.io/instance: frontend
+      app.kubernetes.io/part-of: my-turn-app
+      app.openshift.io/runtime: vuejs-over-nginx
+    annotations:
+      app.openshift.io/vcs-ref: master
+      app.openshift.io/vcs-uri: 'https://gitlab.com/caio.dona/my-turn-app.git'
+  spec:
+    ports:
+      - name: 8080-tcp
+        protocol: TCP
+        port: 8080
+        targetPort: 8080
+    selector:
+      app: frontend
+      deploymentconfig: frontend
+    type: ClusterIP
+    sessionAffinity: None
+  status:
+- kind: Route
+  apiVersion: route.openshift.io/v1
+  metadata:
+    name: backend
+    namespace: my-turn-app
+    labels:
+      app: backend
+      app.kubernetes.io/component: backend
+      app.kubernetes.io/instance: backend
+      app.kubernetes.io/part-of: my-turn-app
+      app.openshift.io/runtime: nodejs
+      app.openshift.io/runtime-version: 10-SCL
+  spec:
+    to:
+      kind: Service
+      name: backend
+      weight: 100
+    port:
+      targetPort: 8080-tcp
+    wildcardPolicy: None
+  status:
+- kind: Route
+  apiVersion: route.openshift.io/v1
+  metadata:
+    name: frontend
+    namespace: my-turn-app
+    labels:
+      app: frontend
+      app.kubernetes.io/component: frontend
+      app.kubernetes.io/instance: frontend
+      app.kubernetes.io/part-of: my-turn-app
+      app.openshift.io/runtime: vuejs-over-nginx
+  spec:
+    to:
+      kind: Service
+      name: frontend
+      weight: 100
+    port:
+      targetPort: 8080-tcp
+    wildcardPolicy: None
+  status:

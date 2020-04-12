@@ -1,0 +1,93 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: build-backend-image
+  namespace: my-turn-app
+spec:
+  inputs:
+    params:
+      - description: git url to clone
+        name: url
+        type: string
+      - default: master
+        description: 'git revision to checkout (branch, tag, sha, ref…)'
+        name: revision
+        type: string
+  results:
+    - description: The new version of this app generated after test it
+      name: tag
+  steps:
+    - image: 'quay.io/rshop/toolchain-cli-alpine:master'
+      name: clone-code
+      resources: {}
+      script: >
+        #!/usr/bin/env sh
+
+        git clone --branch "$(inputs.params.revision)" "$(inputs.params.url)"
+        /src/my-turn-app
+
+        tree -L 1 /src/my-turn-app/backend
+      volumeMounts:
+        - mountPath: /src
+          name: source-code
+    - image: 'quay.io/rshop/toolchain-cli-alpine:master'
+      name: get-backend-url
+      resources: {}
+      script: >
+        #!/usr/bin/env sh
+
+        cd /src/my-turn-app/backend
+
+        export PROTOCOLO=`if [ "$(oc get route backend -o jsonpath='{
+        .spec.tls.termination }')" != "" ]; then echo "https"; else echo "http";
+        fi`
+
+        echo "VUE_APP_API_URL=$PROTOCOLO://$(oc get route backend -o
+        jsonpath='{ .spec.host }')" | tee .env.local
+      volumeMounts:
+        - mountPath: /src
+          name: source-code
+    - image: 'quay.io/rshop/npm-alpine:master'
+      name: test-and-lint
+      resources: {}
+      script: |
+        #!/usr/bin/env sh
+        cd /src/my-turn-app/backend
+        npm install
+        npm run test
+        # npm run lint
+      volumeMounts:
+        - mountPath: /src
+          name: source-code
+    - image: 'quay.io/rshop/toolchain-cli-alpine:master'
+      name: generate-and-push-image
+      resources: {}
+      script: >
+        #!/usr/bin/env sh
+
+        cd /src/my-turn-app/backend/dist
+
+        s2i build .
+        image-registry.openshift-image-registry.svc:5000/openshift/nodejs:latest
+        quay.io/rshop/my-turn-app-backend:develop
+
+        docker push quay.io/rshop/my-turn-app-backend:develop
+      securityContext:
+        privileged: true
+        runAsUser: 0
+      volumeMounts:
+        - mountPath: /src
+          name: source-code
+        - mountPath: /var/run/docker.sock
+          name: docker-socket
+  volumes:
+    - emptyDir: {}
+      name: source-code
+    - hostPath:
+        path: /var/run/docker.sock
+        type: Socket
+      name: docker-socket
+  workspaces:
+    - description: The node packages needed for this app
+      mountPath: /src/my-turn-app/backend/node_modules
+      name: npm-modules

@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: List
+items:
+- kind: DeploymentConfig
+  apiVersion: apps.openshift.io/v1
+  metadata:
+    annotations:
+      app.openshift.io/connects-to: backend
+    name: frontend
+    namespace: my-turn-app
+    labels:
+      app: frontend
+      app.kubernetes.io/component: frontend
+      app.kubernetes.io/instance: frontend
+      app.kubernetes.io/part-of: my-turn-app
+      app.openshift.io/runtime: vuejs-over-nginx
+  spec:
+    replicas: 1
+    selector:
+      app: frontend
+      deploymentconfig: frontend
+    template:
+      metadata:
+        labels:
+          app: frontend
+          deploymentconfig: frontend
+      spec:
+        containers:
+          - name: frontend
+            image: ' '
+            ports:
+              - name: 8080-tcp
+                containerPort: 8080
+                protocol: TCP
+            resources: {}
+            imagePullPolicy: Always
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+        schedulerName: default-scheduler
+    strategy:
+      type: Rolling
+    triggers: []
+  status:
+- kind: DeploymentConfig
+  apiVersion: apps.openshift.io/v1
+  metadata:
+    name: backend
+    namespace: my-turn-app
+    labels:
+      app: backend
+      app.kubernetes.io/component: backend
+      app.kubernetes.io/instance: backend
+      app.kubernetes.io/part-of: my-turn-app
+      app.openshift.io/runtime: nodejs
+      app.openshift.io/runtime-version: 10-SCL
+  spec:
+    replicas: 1
+    selector:
+      app: backend
+      deploymentconfig: backend
+    template:
+      metadata:
+        labels:
+          app: backend
+          deploymentconfig: backend
+      spec:
+        containers:
+          - name: backend
+            image: ' '
+            ports:
+              - containerPort: 8080
+                protocol: TCP
+            env:
+              - name: FASTIFY_PORT
+                value: '8080'
+              - name: FASTIFY_ADDRESS
+                value: 0.0.0.0
+              - name: FASTIFY_LOG_LEVEL
+                value: info
+            resources: {}
+            imagePullPolicy: Always
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+        schedulerName: default-scheduler
+    strategy:
+      type: Rolling
+    triggers: []
+  status:
