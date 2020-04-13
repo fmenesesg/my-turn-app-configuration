@@ -19,8 +19,8 @@ spec:
       script: >
         #!/usr/bin/env sh
 
-        echo "oc patch dc frontend -p '{ \"spec\": { \"template\": { \"spec\": {
-        \"containers\": [{ \"name\": \"frontend\", \"image\":
+        echo "oc patch dc $(inputs.params.layerName) -p '{ \"spec\": { \"template\": { \"spec\": {
+        \"containers\": [{ \"name\": \"$(inputs.params.layerName)\", \"image\":
         \"$(inputs.params.tag)\" }] } } } }'" | /bin/sh -
 
         oc rollout latest "dc/$(inputs.params.layerName)"
