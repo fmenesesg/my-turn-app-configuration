@@ -2,7 +2,6 @@ apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   name: vue-e2e-test
-  namespace: my-turn-app
 spec:
   inputs:
     params:
@@ -23,7 +22,13 @@ spec:
         #!/usr/bin/env sh
 
         git clone --branch "$(inputs.params.revision)" "$(inputs.params.url)"
-        /src/my-turn-app
+        /src/tmp-code
+
+        cp -r /src/tmp-code/* /src/my-turn-app
+
+        cd /src/tmp-code/
+
+        git show-branch --current
 
         tree -L 1 /src/my-turn-app/frontend
       volumeMounts:
@@ -34,6 +39,7 @@ spec:
       resources: {}
       script: |
         #!/usr/bin/env sh
+
         cd /src/my-turn-app/frontend
         npm install
         npm run test:e2e-remote "$(inputs.params.remote-url)"

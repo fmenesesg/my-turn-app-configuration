@@ -5,17 +5,16 @@ items:
   kind: Pipeline
   metadata:
     name: frontend-pipeline
-    namespace: my-turn-app
   spec:
     params:
       - default: 'https://gitlab.com/caio.dona/my-turn-app.git'
-        name: git-url
+        name: gitUrl
         type: string
     tasks:
       - name: unit-test-and-build-image
         params:
           - name: url
-            value: $(params.git-url)
+            value: $(params.gitUrl)
         taskRef:
           kind: Task
           name: build-frontend-image
@@ -23,25 +22,25 @@ items:
           - name: npm-modules
             workspace: dependencies
       - name: deploy-frontend
-        runAfter:
-        - unit-test-and-build-image
         params:
           - name: layerName
             value: frontend
           - name: tag
-            value: $(tasks.unit-test-and-build-image.results.tag)
+            value: 'quay.io/rshop/my-turn-app-frontend:develop'
+        runAfter:
+          - unit-test-and-build-image
         taskRef:
           kind: Task
           name: oc-rollout-layer
       - name: e2e-test
-        runAfter:
-        - unit-test-and-build-image
-        - deploy-frontend
         params:
           - name: url
-            value: $(params.git-url)
+            value: $(params.gitUrl)
           - name: remote-url
-            value: $(tasks.deploy-frontend.results.app-url)
+            value: $(tasks.deploy-frontend.results.appUrl)
+        retries: 3
+        runAfter:
+          - deploy-frontend
         taskRef:
           kind: Task
           name: vue-e2e-test
@@ -54,17 +53,17 @@ items:
   kind: Pipeline
   metadata:
     name: backend-pipeline
-    namespace: my-turn-app
+
   spec:
     params:
       - default: 'https://gitlab.com/caio.dona/my-turn-app.git'
-        name: git-url
+        name: gitUrl
         type: string
     tasks:
       - name: unit-test-and-build-image
         params:
           - name: url
-            value: $(params.git-url)
+            value: $(params.gitUrl)
         taskRef:
           kind: Task
           name: build-backend-image
@@ -78,7 +77,7 @@ items:
           - name: layerName
             value: backend
           - name: tag
-            value: $(tasks.unit-test-and-build-image.results.tag)
+            value: 'quay.io/rshop/my-turn-app-backend:develop'
         taskRef:
           kind: Task
           name: oc-rollout-layer

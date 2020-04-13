@@ -5,7 +5,6 @@ items:
   apiVersion: v1
   metadata:
     name: backend
-    namespace: my-turn-app
     labels:
       app: backend
       app.kubernetes.io/component: backend
@@ -32,7 +31,6 @@ items:
   apiVersion: v1
   metadata:
     name: frontend
-    namespace: my-turn-app
     labels:
       app: frontend
       app.kubernetes.io/component: frontend
@@ -58,7 +56,6 @@ items:
   apiVersion: route.openshift.io/v1
   metadata:
     name: backend
-    namespace: my-turn-app
     labels:
       app: backend
       app.kubernetes.io/component: backend
@@ -79,7 +76,6 @@ items:
   apiVersion: route.openshift.io/v1
   metadata:
     name: frontend
-    namespace: my-turn-app
     labels:
       app: frontend
       app.kubernetes.io/component: frontend

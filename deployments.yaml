@@ -7,7 +7,6 @@ items:
     annotations:
       app.openshift.io/connects-to: backend
     name: frontend
-    namespace: my-turn-app
     labels:
       app: frontend
       app.kubernetes.io/component: frontend
@@ -33,6 +32,24 @@ items:
                 containerPort: 8080
                 protocol: TCP
             resources: {}
+            readinessProbe:
+              httpGet:
+                path: /index.html
+                port: 8080
+                scheme: HTTP
+              timeoutSeconds: 1
+              periodSeconds: 10
+              successThreshold: 1
+              failureThreshold: 3
+            livenessProbe:
+              httpGet:
+                path: /index.html
+                port: 8080
+                scheme: HTTP
+              timeoutSeconds: 1
+              periodSeconds: 10
+              successThreshold: 1
+              failureThreshold: 3
             imagePullPolicy: Always
         restartPolicy: Always
         terminationGracePeriodSeconds: 30
@@ -47,7 +64,6 @@ items:
   apiVersion: apps.openshift.io/v1
   metadata:
     name: backend
-    namespace: my-turn-app
     labels:
       app: backend
       app.kubernetes.io/component: backend
@@ -68,6 +84,24 @@ items:
       spec:
         containers:
           - name: backend
+            readinessProbe:
+              httpGet:
+                path: /api
+                port: 8080
+                scheme: HTTP
+              timeoutSeconds: 1
+              periodSeconds: 10
+              successThreshold: 1
+              failureThreshold: 3
+            livenessProbe:
+              httpGet:
+                path: /api
+                port: 8080
+                scheme: HTTP
+              timeoutSeconds: 1
+              periodSeconds: 10
+              successThreshold: 1
+              failureThreshold: 3
             image: ' '
             ports:
               - containerPort: 8080

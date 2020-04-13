@@ -1,0 +1,133 @@
+apiVersion: v1
+kind: List
+items:
+- kind: Role
+  apiVersion: rbac.authorization.k8s.io/v1
+  metadata:
+    name: tekton-triggers-role
+  rules:
+  - verbs:
+    - get
+    - list
+    - watch
+  apiGroups:
+    - ''
+  resources:
+    - configmaps
+    - secrets
+    - services
+  - apiGroups:
+    - tekton.dev
+    resources:
+    - eventlisteners
+    - triggerbindings
+    - triggertemplates
+    - pipelineresources
+    verbs:
+    - get
+  - apiGroups:
+    - tekton.dev
+    resources:
+    - pipelineruns
+    - pipelineresources
+    verbs:
+    - create
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: tekton-triggers-sa
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: tekton-triggers-rolebinding
+  subjects:
+  - kind: ServiceAccount
+    name: tekton-triggers-sa
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: tekton-triggers-role
+- apiVersion: tekton.dev/v1alpha1
+  kind: TriggerTemplate
+  metadata:
+    name: my-turn-app-triggertemplate
+  spec:
+    params:
+    - name: gitrevision
+      description: The git revision
+      default: master
+    - name: gitrepositoryurl
+      description: The git repository url
+    - name: namespace
+      description: The namespace to create the resources
+    resourcetemplates:
+    - apiVersion: tekton.dev/v1alpha1
+      kind: PipelineRun
+      metadata:
+        name: frontend-$(params.namespace)-$(uid)
+        namespace: $(params.namespace)
+        labels:
+          tekton.dev/pipeline: frontend-pipeline
+      spec:
+        params:
+          - name: url
+            value: $(params.gitrepositoryurl)
+        timeout: 0h10m0s
+        pipelineRef:
+          name: frontend-pipeline
+        serviceAccountName: pipeline
+        workspaces:
+        - name: dependencies
+          persistentVolumeClaim:
+            claimName: pvc-frontend-dependencies
+    - apiVersion: tekton.dev/v1alpha1
+      kind: PipelineRun
+      metadata:
+        name: backend-$(params.namespace)-$(uid)
+        namespace: $(params.namespace)
+        labels:
+          tekton.dev/pipeline: backend-pipeline
+      spec:
+        params:
+          - name: url
+            value: $(params.gitrepositoryurl)
+        timeout: 0h5m0s
+        pipelineRef:
+          name: backend-pipeline
+        serviceAccountName: pipeline
+        workspaces:
+        - name: dependencies
+          persistentVolumeClaim:
+            claimName: pvc-backend-dependencies
+- apiVersion: tekton.dev/v1alpha1
+  kind: TriggerBinding
+  metadata:
+    name: my-turn-app-pipelinebinding
+  spec:
+    params:
+    - name: namespace
+      value: my-turn-app
+    - name: gitrepositoryurl
+      value: $(body.repository.git_http_url)
+- apiVersion: tekton.dev/v1alpha1
+  kind: EventListener
+  metadata:
+    name: my-turn-app-listener
+  spec:
+    serviceAccountName: tekton-triggers-sa
+    triggers:
+    - binding:
+        name: my-turn-app-pipelinebinding
+      template:
+        name: my-turn-app-triggertemplate
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: my-turn-app-eventlistener
+  spec:
+    port:
+      targetPort: 8080
+    to:
+      kind: Service
+      name: el-my-turn-app-listener
+      weight: 100
