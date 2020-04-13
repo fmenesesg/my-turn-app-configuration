@@ -8,16 +8,20 @@ RUN apk add --update --no-cache git less openssh make build-base krb5 krb5-dev \
 
 FROM alpine:latest
 
-ENV DOCKER_VERSION="17.03.1-ce" \
+ENV HOME="/src" DOCKER_VERSION="17.03.1-ce" \
     S2I_VERSION="v1.2.0" S2I_TAG_DISTRIBUTION="2a579ecd-linux-amd64"
 
 # Install dependencies and tools
 # RUN apk --update --no-cache add bash curl git less openssh tree go && \
 RUN apk --update --no-cache add git less openssh tree && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p ${HOME}/.bin
 
 # Copy oc command from build-oc-cli
-COPY --from=build-oc-cli /go/src/github.com/openshift/oc/oc /usr/local/bin/
+COPY --from=build-oc-cli /go/src/github.com/openshift/oc/oc ${HOME}/.bin
+
+RUN chmod +x ${HOME}/.bin/oc && \
+    cp ${HOME}/.bin/oc /usr/bin
 
 # Install s2i client
 # RUN curl -L -o /tmp/s2i-$S2I_VERSION.tar.gz https://github.com/openshift/source-to-image/releases/download/$S2I_VERSION/source-to-image-$S2I_VERSION-$S2I_TAG_DISTRIBUTION.tar.gz \
