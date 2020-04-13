@@ -17,18 +17,18 @@ RUN apk --update --no-cache add git less openssh tree && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy oc command from build-oc-cli
-COPY --from=build-oc-cli /go/src/github.com/openshift/oc/oc /usr/bin/
+COPY --from=build-oc-cli /go/src/github.com/openshift/oc/oc /usr/local/bin/
 
 # Install s2i client
 # RUN curl -L -o /tmp/s2i-$S2I_VERSION.tar.gz https://github.com/openshift/source-to-image/releases/download/$S2I_VERSION/source-to-image-$S2I_VERSION-$S2I_TAG_DISTRIBUTION.tar.gz \
 #     && tar -xzv -C /tmp -f /tmp/s2i-$S2I_VERSION.tar.gz \
-#     && mv /tmp/s2i /usr/bin \
+#     && mv /tmp/s2i /usr/local/bin \
 #     && rm -rf /tmp/s2i*
 
 # Install Docker CLI
 # RUN curl -L -o /tmp/docker-$DOCKER_VERSION.tgz https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_VERSION.tgz \
 #     && tar -xz -C /tmp -f /tmp/docker-$DOCKER_VERSION.tgz \
-#     && mv /tmp/docker/docker /usr/bin \
+#     && mv /tmp/docker/docker /usr/local/bin \
 #     && rm -rf /tmp/docker-$DOCKER_VERSION /tmp/docker
 
 # Prepare folders for Tekton pipelines steps
