@@ -48,7 +48,7 @@ spec:
         git commit -a -m "🤖Frontend image updated to $(echo
         "${MANIFEST:8:19}")🤖"
 
-        git push
+        git push --set-upstream origin master
       volumeMounts:
         - mountPath: /root/.ssh
           name: git-sshkey-volume
