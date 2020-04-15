@@ -10,9 +10,9 @@ items:
     - get
     - list
     - watch
-  apiGroups:
+    apiGroups:
     - ''
-  resources:
+    resources:
     - configmaps
     - secrets
     - services
@@ -53,26 +53,28 @@ items:
     name: my-turn-app-triggertemplate
   spec:
     params:
-    - name: gitrevision
-      description: The git revision
-      default: master
-    - name: gitrepositoryurl
-      description: The git repository url
-    - name: namespace
+    - name: NAMESPACE
       description: The namespace to create the resources
     resourcetemplates:
     - apiVersion: tekton.dev/v1alpha1
       kind: PipelineRun
       metadata:
-        name: frontend-$(params.namespace)-$(uid)
-        namespace: $(params.namespace)
+        name: frontend-$(params.NAMESPACE)-$(uid)
+        namespace: $(params.NAMESPACE)
         labels:
           tekton.dev/pipeline: frontend-pipeline
       spec:
-        params:
-          - name: url
-            value: $(params.gitrepositoryurl)
-        timeout: 0h10m0s
+        resources:
+        - name: source-repo
+          resourceRef:
+            name: source-repository
+        - name: config-repo
+          resourceRef:
+            name: config-repository
+        - name: image
+          resourceRef:
+            name: frontend-image
+        timeout: 0h15m0s
         pipelineRef:
           name: frontend-pipeline
         serviceAccountName: pipeline
@@ -83,15 +85,22 @@ items:
     - apiVersion: tekton.dev/v1alpha1
       kind: PipelineRun
       metadata:
-        name: backend-$(params.namespace)-$(uid)
-        namespace: $(params.namespace)
+        name: backend-$(params.NAMESPACE)-$(uid)
+        namespace: $(params.NAMESPACE)
         labels:
           tekton.dev/pipeline: backend-pipeline
       spec:
-        params:
-          - name: url
-            value: $(params.gitrepositoryurl)
-        timeout: 0h5m0s
+        resources:
+        - name: source-repo
+          resourceRef:
+            name: source-repository
+        - name: config-repo
+          resourceRef:
+            name: config-repository
+        - name: image
+          resourceRef:
+            name: backend-image
+        timeout: 0h10m0s
         pipelineRef:
           name: backend-pipeline
         serviceAccountName: pipeline
@@ -105,10 +114,8 @@ items:
     name: my-turn-app-pipelinebinding
   spec:
     params:
-    - name: namespace
+    - name: NAMESPACE
       value: my-turn-app
-    - name: gitrepositoryurl
-      value: $(body.repository.git_http_url)
 - apiVersion: tekton.dev/v1alpha1
   kind: EventListener
   metadata:

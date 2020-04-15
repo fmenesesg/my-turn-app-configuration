@@ -5,67 +5,79 @@ metadata:
 spec:
   inputs:
     params:
-      - description: git url to clone
-        name: url
+      - default: oci
+        description: 'The format of the built container, oci or docker'
+        name: FORMAT
         type: string
-      - default: master
-        description: 'git revision to checkout (branch, tag, sha, ref…)'
-        name: revision
+      - default: 'true'
+        description: >-
+          Verify the TLS on the registry endpoint (for push/pull to a non-TLS
+          registry)
+        name: TLSVERIFY
         type: string
+    resources:
+      - name: git
+        type: git
+      - name: image
+        type: image
   steps:
-    - image: 'quay.io/rshop/toolchain-cli-alpine:master'
+    - image: 'quay.io/rshop/toolchain-cli-alpine:v0.1'
       name: clone-code
       resources: {}
-      script: >
-        #!/usr/bin/env sh
-
-        git clone --branch "$(inputs.params.revision)" "$(inputs.params.url)"
-        /src/tmp-code
-
-        cp -r /src/tmp-code/* /src/my-turn-app
-
-        cd /src/tmp-code/
-
+      script: |
         git show-branch --current
-
-        tree -L 1 /src/my-turn-app/backend
-      volumeMounts:
-        - mountPath: /src
-          name: source-code
+        tree -L 1 ./backend
+      workingDir: /workspace/git
     - image: 'quay.io/rshop/npm-alpine:master'
       name: test-lint-and-build
       resources: {}
       script: |
-        #!/usr/bin/env sh
-        cd /src/my-turn-app/backend
         npm install
         npm run test
-      volumeMounts:
-        - mountPath: /src
-          name: source-code
-    - args:
-        - '--dockerfile=/src/my-turn-app/backend/Dockerfile'
-        - '--context=dir:///src/my-turn-app/backend'
-        - '--destination=quay.io/rshop/my-turn-app-backend:develop'
-      image: 'gcr.io/kaniko-project/executor:latest'
-      name: generate-and-push-image
+      workingDir: /workspace/git/backend
+    - command:
+        - buildah
+        - bud
+        - '--format=$(inputs.params.FORMAT)'
+        - '--tls-verify=$(inputs.params.TLSVERIFY)'
+        - '--layers'
+        - '-f'
+        - Dockerfile
+        - '-t'
+        - $(inputs.resources.image.url)
+        - .
+      image: 'quay.io/buildah/stable:latest'
+      name: build-image
       resources: {}
       securityContext:
         runAsUser: 0
       volumeMounts:
-        - mountPath: /kaniko/.docker
-          name: docker-config-volume
+        - mountPath: /var/lib/containers
+          name: varlibcontainers
+      workingDir: /workspace/git/backend
+    - command:
+        - buildah
+        - push
+        - '--authfile=/root/.docker/config.json'
+        - '--tls-verify=$(inputs.params.TLSVERIFY)'
+        - $(inputs.resources.image.url)
+        - 'docker://$(inputs.resources.image.url)'
+      image: 'quay.io/buildah/stable:latest'
+      name: push-image
+      resources: {}
+      securityContext:
+        runAsUser: 0
+      volumeMounts:
+        - mountPath: /var/lib/containers
+          name: varlibcontainers
         - mountPath: /root/.docker
           name: docker-config-volume
-        - mountPath: /src
-          name: source-code
+      workingDir: /workspace/git/backend
   volumes:
-    - emptyDir: {}
-      name: source-code
     - name: docker-config-volume
       secret:
         secretName: rshop-registry-auth
   workspaces:
     - description: The node packages needed for this app
-      mountPath: /src/my-turn-app/backend/node_modules
+      mountPath: /workspace/git/backend/node_modules
       name: npm-modules

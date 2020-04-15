@@ -5,86 +5,93 @@ metadata:
 spec:
   inputs:
     params:
-      - description: git url to clone
-        name: url
+      - default: oci
+        description: 'The format of the built container, oci or docker'
+        name: FORMAT
         type: string
-      - default: master
-        description: 'git revision to checkout (branch, tag, sha, ref…)'
-        name: revision
+      - default: 'true'
+        description: >-
+          Verify the TLS on the registry endpoint (for push/pull to a non-TLS
+          registry)
+        name: TLSVERIFY
         type: string
+    resources:
+      - name: git
+        type: git
+      - name: image
+        type: image
   steps:
-    - image: 'quay.io/rshop/toolchain-cli-alpine:master'
+    - image: 'quay.io/rshop/toolchain-cli-alpine:v0.1'
       name: clone-code
       resources: {}
-      script: >
-        #!/usr/bin/env sh
-
-        git clone --branch "$(inputs.params.revision)" "$(inputs.params.url)"
-        /src/tmp-code
-
-        cp -r /src/tmp-code/* /src/my-turn-app
-
-        cd /src/tmp-code/
-
+      script: |
         git show-branch --current
-
-        tree -L 1 /src/my-turn-app/frontend
-      volumeMounts:
-        - mountPath: /src
-          name: source-code
-    - image: 'quay.io/rshop/toolchain-cli-alpine:latest'
+        tree -L 1 ./frontend
+      workingDir: /workspace/git
+    - image: 'quay.io/openshift/origin-cli:latest'
       name: get-backend-url
       resources: {}
       script: >
-        #!/usr/bin/env sh
-
-        cd /src/my-turn-app/frontend
-
         export PROTOCOLO=`if [ "$(oc get route backend -o jsonpath='{
         .spec.tls.termination }')" != "" ]; then echo "https"; else echo "http";
         fi`
 
         echo "VUE_APP_API_URL=$PROTOCOLO://$(oc get route backend -o jsonpath='{
         .spec.host }')" | tee .env.local
-      volumeMounts:
-        - mountPath: /src
-          name: source-code
+      workingDir: /workspace/git/frontend
     - image: 'quay.io/rshop/npm-alpine:master'
       name: test-lint-and-build
       resources: {}
       script: |
-        #!/usr/bin/env sh
-        cd /src/my-turn-app/frontend
         npm install
         npm run test:unit
         npm run lint
         npm run build
-      volumeMounts:
-        - mountPath: /src
-          name: source-code
-    - args:
-        - '--dockerfile=/src/my-turn-app/frontend/Dockerfile'
-        - '--context=dir:///src/my-turn-app/frontend'
-        - '--destination=quay.io/rshop/my-turn-app-frontend:develop'
-      image: 'gcr.io/kaniko-project/executor:latest'
-      name: generate-and-push-image
+      workingDir: /workspace/git/frontend
+    - command:
+        - buildah
+        - bud
+        - '--format=$(inputs.params.FORMAT)'
+        - '--tls-verify=$(inputs.params.TLSVERIFY)'
+        - '--layers'
+        - '-f'
+        - Dockerfile
+        - '-t'
+        - $(inputs.resources.image.url)
+        - .
+      image: 'quay.io/buildah/stable:latest'
+      name: build-image
       resources: {}
       securityContext:
-        runAsUser: 0
+        privileged: true
       volumeMounts:
-        - mountPath: /kaniko/.docker
-          name: docker-config-volume
+        - mountPath: /var/lib/containers
+          name: varlibcontainers
+      workingDir: /workspace/git/frontend
+    - command:
+        - buildah
+        - push
+        - '--authfile=/root/.docker/config.json'
+        - '--tls-verify=$(inputs.params.TLSVERIFY)'
+        - $(inputs.resources.image.url)
+        - 'docker://$(inputs.resources.image.url)'
+      image: 'quay.io/buildah/stable:latest'
+      name: push-image
+      resources: {}
+      securityContext:
+        privileged: true
+      volumeMounts:
+        - mountPath: /var/lib/containers
+          name: varlibcontainers
         - mountPath: /root/.docker
           name: docker-config-volume
-        - mountPath: /src
-          name: source-code
   volumes:
     - emptyDir: {}
-      name: source-code
+      name: varlibcontainers
     - name: docker-config-volume
       secret:
         secretName: rshop-registry-auth
   workspaces:
     - description: The node packages needed for this app
-      mountPath: /src/my-turn-app/frontend/node_modules
+      mountPath: /workspace/git/frontend/node_modules
       name: npm-modules

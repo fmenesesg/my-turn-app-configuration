@@ -4,56 +4,45 @@ metadata:
   name: vue-e2e-test
 spec:
   inputs:
-    params:
-      - description: git url to clone
-        name: url
-        type: string
-      - default: master
-        description: 'git revision to checkout (branch, tag, sha, ref…)'
-        name: revision
-        type: string
-      - name: remote-url
-        type: string
+    resources:
+      - name: git
+        type: git
   steps:
     - image: 'quay.io/rshop/toolchain-cli-alpine:master'
       name: clone-code
       resources: {}
+      script: |
+        git show-branch --current
+        tree -L 1 ./frontend
       securityContext:
         runAsUser: 0
-      script: >
-        #!/usr/bin/env sh
+      workingDir: /workspace/git
+    - image: 'quay.io/openshift/origin-cli:latest'
+      name: get-app-url
+      resources: {}
+      script: |
+        export PROTOCOLO=`if [ "$(oc get route frontend -o jsonpath='{
 
-        git clone --branch "$(inputs.params.revision)" "$(inputs.params.url)"
-        /src/tmp-code
+        .spec.tls.termination }')" != "" ]; then echo "https"; else echo "http";
 
-        cp -r /src/tmp-code/* /src/my-turn-app
+        fi`
 
-        cd /src/tmp-code/
+        echo "APP_URL=$PROTOCOLO://$(oc get route frontend -o jsonpath='{
+        .spec.host
 
-        git show-branch --current
-
-        tree -L 1 /src/my-turn-app/frontend
-      volumeMounts:
-        - mountPath: /src
-          name: source-code
+        }')" | tee .env.local
+      workingDir: /workspace/git/frontend
     - image: 'quay.io/rshop/npm-alpine:master'
       name: test-lint-and-build
       resources: {}
+      script: |
+        npm install
+        source .env.local
+        npm run test:e2e-remote "$APP_URL"
       securityContext:
         runAsUser: 0
-      script: |
-        #!/usr/bin/env sh
-
-        cd /src/my-turn-app/frontend
-        npm install
-        npm run test:e2e-remote "$(inputs.params.remote-url)"
-      volumeMounts:
-        - mountPath: /src
-          name: source-code
-  volumes:
-    - emptyDir: {}
-      name: source-code
+      workingDir: /workspace/git/frontend
   workspaces:
     - description: The node packages needed for this app
-      mountPath: /src/my-turn-app/frontend/node_modules
+      mountPath: /workspace/git/frontend/node_modules
       name: npm-modules

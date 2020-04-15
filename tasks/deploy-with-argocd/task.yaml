@@ -1,0 +1,74 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: deploy-with-argocd
+spec:
+  inputs:
+    params:
+      - default: '--'
+        name: FLAGS
+        type: string
+    resources:
+      - name: git
+        type: git
+      - name: image
+        type: image
+  stepTemplate:
+    envFrom:
+      - secretRef:
+          name: argocd-env-secret
+    name: ''
+    resources: {}
+  steps:
+    - image: 'quay.io/rshop/toolchain-cli-alpine:v0.1'
+      name: update-deployment
+      resources: {}
+      script: >
+        REPOSITORY=`echo "$(inputs.resources.image.url)" | sed 's/quay.io\\///'`
+
+        MANIFEST="$(curl -s
+        "https://quay.io/api/v1/repository/$REPOSITORY/tag/?onlyActiveTags=true&specificTag=develop"
+        | jq -r '.tags[0].manifest_digest')"
+
+        cat deployments.yaml | yq w -
+        'items.(metadata.name==frontend).spec.template.spec.containers[0].image'
+        "$(inputs.resources.image.url)@$MANIFEST" | tee deployments.yaml
+
+        git config --global user.email "tekton-pipeline@rshop.com"
+
+        git config --global user.name "Tekton Pipeline"
+
+        git add deployments.yaml
+
+        git status
+
+        git commit -a -m "🤖Frontend image updated to $(echo
+        "${MANIFEST:8:19}")🤖"
+
+        git push
+      volumeMounts:
+        - mountPath: /root/.ssh
+          name: git-sshkey-volume
+      workingDir: /workspace/git
+    - args:
+        - >-
+          argocd app sync my-turn-app --revision
+          $(inputs.resources.git.revision) $(inputs.params.FLAGS)
+      command:
+        - /bin/bash
+        - '-c'
+      image: 'argoproj/argocd:v1.0.2'
+      name: sync-configurations
+      resources: {}
+    - args:
+        - argocd app wait my-turn-app --health $(inputs.params.FLAGS)
+      command:
+        - /bin/bash
+        - '-c'
+      image: 'argoproj/argocd:v1.0.2'
+      name: wait
+      resources: {}
+  volumes:
+    - name: git-sshkey-volume
+      secret:
+        secretName: git-sshkey

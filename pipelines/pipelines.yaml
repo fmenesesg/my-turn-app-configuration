@@ -2,84 +2,136 @@ apiVersion: v1
 kind: List
 items:
 - apiVersion: tekton.dev/v1alpha1
+  kind: PipelineResource
+  metadata:
+    name: source-repository
+  spec:
+    type: git
+    params:
+    - name: revision
+      value: master
+    - name: url
+      value: https://gitlab.com/caio.dona/my-turn-app.git
+- apiVersion: tekton.dev/v1alpha1
+  kind: PipelineResource
+  metadata:
+    name: config-repository
+  spec:
+    type: git
+    params:
+    - name: revision
+      value: master
+    - name: url
+      value: https://gitlab.com/caio.dona/my-turn-app-configuration.git
+- apiVersion: tekton.dev/v1alpha1
+  kind: PipelineResource
+  metadata:
+    name: frontend-image
+  spec:
+    type: image
+    params:
+    - name: url
+      value: quay.io/rshop/my-turn-app-frontend
+- apiVersion: tekton.dev/v1alpha1
+  kind: PipelineResource
+  metadata:
+    name: backend-image
+  spec:
+    type: image
+    params:
+    - name: url
+      value: quay.io/rshop/my-turn-app-backend
+- apiVersion: tekton.dev/v1alpha1
   kind: Pipeline
   metadata:
     name: frontend-pipeline
   spec:
-    params:
-      - default: 'https://gitlab.com/caio.dona/my-turn-app.git'
-        name: gitUrl
-        type: string
+    resources:
+    - name: source-repo
+      type: git
+    - name: config-repo
+      type: git
+    - name: image
+      type: image
     tasks:
-      - name: unit-test-and-build-image
-        params:
-          - name: url
-            value: $(params.gitUrl)
-        taskRef:
-          kind: Task
-          name: build-frontend-image
-        workspaces:
-          - name: npm-modules
-            workspace: dependencies
-      - name: deploy-frontend
-        params:
-          - name: layerName
-            value: frontend
-          - name: tag
-            value: 'quay.io/rshop/my-turn-app-frontend:develop'
-        runAfter:
-          - unit-test-and-build-image
-        taskRef:
-          kind: Task
-          name: oc-rollout-layer
-      - name: e2e-test
-        params:
-          - name: url
-            value: $(params.gitUrl)
-          - name: remote-url
-            value: $(tasks.deploy-frontend.results.appUrl)
-        retries: 3
-        runAfter:
-          - deploy-frontend
-        taskRef:
-          kind: Task
-          name: vue-e2e-test
-        workspaces:
-          - name: npm-modules
-            workspace: dependencies
+    - name: unit-test-and-build-image
+      resources:
+        inputs:
+        - name: git
+          resource: source-repo
+        - name: image
+          resource: image
+      taskRef:
+        kind: Task
+        name: build-frontend-image
+      workspaces:
+      - name: npm-modules
+        workspace: dependencies
+    - name: deploy-frontend
+      resources:
+        inputs:
+        - name: git
+          resource: config-repo
+        - name: image
+          resource: image
+      runAfter:
+      - unit-test-and-build-image
+      taskRef:
+        kind: Task
+        name: deploy-with-argocd
+    - name: e2e-test
+      resources:
+        inputs:
+        - name: git
+          resource: source-repo
+      retries: 2
+      runAfter:
+      - deploy-frontend
+      taskRef:
+        kind: Task
+        name: vue-e2e-test
+      workspaces:
+      - name: npm-modules
+        workspace: dependencies
     workspaces:
-      - name: dependencies
+    - name: dependencies
 - apiVersion: tekton.dev/v1alpha1
   kind: Pipeline
   metadata:
     name: backend-pipeline
-
   spec:
-    params:
-      - default: 'https://gitlab.com/caio.dona/my-turn-app.git'
-        name: gitUrl
-        type: string
+    resources:
+    - name: source-repo
+      type: git
+    - name: config-repo
+      type: git
+    - name: image
+      type: image
     tasks:
-      - name: unit-test-and-build-image
-        params:
-          - name: url
-            value: $(params.gitUrl)
-        taskRef:
-          kind: Task
-          name: build-backend-image
-        workspaces:
-          - name: npm-modules
-            workspace: dependencies
-      - name: deploy-backend
-        runAfter:
-        - unit-test-and-build-image
-        params:
-          - name: layerName
-            value: backend
-          - name: tag
-            value: 'quay.io/rshop/my-turn-app-backend:develop'
-        taskRef:
-          kind: Task
-          name: oc-rollout-layer
+    - name: unit-test-and-build-image
+      resources:
+        inputs:
+        - name: git
+          resource: source-repo
+        - name: image
+          resource: image
+      taskRef:
+        kind: Task
+        name: build-backend-image
+      workspaces:
+      - name: npm-modules
+        workspace: dependencies
+    - name: deploy-backend
+      runAfter:
+      - unit-test-and-build-image
+      resources:
+        inputs:
+        - name: git
+          resource: config-repo
+        - name: image
+          resource: image
+      taskRef:
+        kind: Task
+        name: deploy-with-argocd
     workspaces:
-      - name: dependencies
+    - name: dependencies
