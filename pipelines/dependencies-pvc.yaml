@@ -11,7 +11,6 @@ items:
     resources:
       requests:
         storage: 500Mi
-    persistentVolumeReclaimPolicy: Delete
   status:
 - kind: PersistentVolumeClaim
   apiVersion: v1
@@ -23,5 +22,4 @@ items:
     resources:
       requests:
         storage: 500Mi
-    persistentVolumeReclaimPolicy: Delete
   status:
