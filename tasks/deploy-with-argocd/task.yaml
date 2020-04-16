@@ -41,6 +41,8 @@ spec:
 
         git config --global user.name "Tekton Pipeline"
 
+        git remote set-url origin "$(git remote get-url origin | sed 's/^https:\/\/\([a-z.]*\)\//git@\1:/')"
+
         git add deployments.yaml
 
         git status
@@ -48,7 +50,7 @@ spec:
         git commit -a -m "🤖Frontend image updated to $(echo
         "${MANIFEST:8:19}")🤖"
 
-        git push --set-upstream origin master
+        git push
       volumeMounts:
         - mountPath: /root/.ssh
           name: git-sshkey-volume
