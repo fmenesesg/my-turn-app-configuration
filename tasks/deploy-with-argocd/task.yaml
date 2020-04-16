@@ -26,7 +26,7 @@ spec:
     - image: 'quay.io/rshop/toolchain-cli-alpine:v0.1'
       name: update-deployment
       resources: {}
-      script: >
+      script: |
         REPOSITORY=`echo "$(inputs.resources.image.url)" | sed 's/quay.io\\///'`
 
         MANIFEST="$(curl -s
