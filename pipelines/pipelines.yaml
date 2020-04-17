@@ -8,8 +8,6 @@ items:
   spec:
     type: git
     params:
-    - name: revision
-      value: master
     - name: url
       value: https://gitlab.com/caio.dona/my-turn-app.git
 - apiVersion: tekton.dev/v1alpha1
@@ -19,8 +17,6 @@ items:
   spec:
     type: git
     params:
-    - name: revision
-      value: master
     - name: url
       value: https://gitlab.com/caio.dona/my-turn-app-configuration.git
 - apiVersion: tekton.dev/v1alpha1
