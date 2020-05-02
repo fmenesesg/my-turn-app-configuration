@@ -41,6 +41,8 @@ spec:
         git commit -a -m "🤖Frontend image updated to $(echo "${MANIFEST:8:19}")🤖"
         git fetch
         git push
+      securityContext:
+        runAsUser: 0
       volumeMounts:
         - mountPath: /root/.ssh
           name: git-sshkey-volume
