@@ -27,7 +27,7 @@ spec:
       name: update-deployment
       resources: {}
       script: |
-        REPOSITORY="$(echo "$(inputs.resources.image.url)" | sed 's/quay.io\\///')"
+        REPOSITORY="$(echo "$(inputs.resources.image.url)" | sed 's/quay.io\///')"
         MANIFEST="$(curl -s "https://quay.io/api/v1/repository/$REPOSITORY/tag/?onlyActiveTags=true&specificTag=develop" | jq -r '.tags[0].manifest_digest')"
         git config --local user.email "tekton-pipeline@rshop.com"
         git config --local user.name "Tekton Pipeline"
