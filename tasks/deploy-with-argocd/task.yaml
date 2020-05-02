@@ -27,11 +27,13 @@ spec:
       name: update-deployment
       resources: {}
       script: |
+        whoami
         REPOSITORY="$(echo "$(inputs.resources.image.url)" | sed 's/quay.io\///')"
         MANIFEST="$(curl -s "https://quay.io/api/v1/repository/$REPOSITORY/tag/?onlyActiveTags=true&specificTag=develop" | jq -r '.tags[0].manifest_digest')"
         git config --local user.email "tekton-pipeline@rshop.com"
         git config --local user.name "Tekton Pipeline"
         git remote set-url origin "$(git remote get-url origin | sed 's/^https:\/\/\([a-z.]*\)\//git@\1:/')"
+        git remote -v
         git checkout "$(inputs.params.ENVIRONMENT)"
         cat deployments.yaml | yq w - 'items.(metadata.name==frontend).spec.template.spec.containers[0].image' "$(inputs.resources.image.url)@$MANIFEST" | tee deployments.yaml
         git add deployments.yaml
