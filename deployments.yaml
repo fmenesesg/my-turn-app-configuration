@@ -59,7 +59,6 @@ items:
     strategy:
       type: Rolling
     triggers: []
-  status:
 - kind: DeploymentConfig
   apiVersion: apps.openshift.io/v1
   metadata:
@@ -123,4 +122,3 @@ items:
     strategy:
       type: Rolling
     triggers: []
-  status:

@@ -76,7 +76,7 @@ items:
         kind: Task
         name: deploy-with-argocd
     - name: tag-image-qa
-      
+
     - name: deploy-in-qa
       resources:
         inputs:
