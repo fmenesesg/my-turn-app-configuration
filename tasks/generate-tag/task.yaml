@@ -1,0 +1,56 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: generate-tag
+spec:
+  inputs:
+    params:
+      - default: 'true'
+        description: >-
+          Verify the TLS on the registry endpoint (for push/pull to a non-TLS
+          registry)
+        name: TLSVERIFY
+        type: string
+    resources:
+      - name: image
+        type: image
+  steps:
+    - name: create-tag
+      command:
+        - buildah
+        - tag
+        - '--authfile=/root/.docker/config.json'
+        - '--tls-verify=$(inputs.params.TLSVERIFY)'
+        - $(inputs.resources.image.url)
+        - 'docker://$(inputs.resources.image.url)'
+      image: 'quay.io/buildah/stable:latest'
+      name: push-image
+      resources: {}
+      securityContext:
+        privileged: true
+      volumeMounts:
+        - mountPath: /var/lib/containers
+          name: varlibcontainers
+    - command:
+        - buildah
+        - push
+        - '--authfile=/root/.docker/config.json'
+        - '--tls-verify=$(inputs.params.TLSVERIFY)'
+        - $(inputs.resources.image.url)
+        - 'docker://$(inputs.resources.image.url)'
+      image: 'quay.io/buildah/stable:latest'
+      name: push-image
+      resources: {}
+      securityContext:
+        privileged: true
+      volumeMounts:
+        - mountPath: /var/lib/containers
+          name: varlibcontainers
+        - mountPath: /root/.docker
+          name: docker-config-volume
+  volumes:
+    - emptyDir: {}
+      name: varlibcontainers
+    - name: docker-config-volume
+      secret:
+        secretName: rshop-registry-auth
