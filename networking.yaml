@@ -70,7 +70,8 @@ items:
     port:
       targetPort: 8080-tcp
     wildcardPolicy: None
-  status: {}
+  status:
+    ingress: []
 - kind: Route
   apiVersion: route.openshift.io/v1
   metadata:
@@ -90,4 +91,5 @@ items:
     port:
       targetPort: 8080-tcp
     wildcardPolicy: None
-  status: {}
+  status:
+    ingress: []
