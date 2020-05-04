@@ -62,6 +62,7 @@ items:
       app.openshift.io/runtime: nodejs
       app.openshift.io/runtime-version: 10-SCL
   spec:
+    host: ''
     to:
       kind: Service
       name: backend
@@ -69,6 +70,7 @@ items:
     port:
       targetPort: 8080-tcp
     wildcardPolicy: None
+  status: {}
 - kind: Route
   apiVersion: route.openshift.io/v1
   metadata:
@@ -80,6 +82,7 @@ items:
       app.kubernetes.io/part-of: my-turn-app
       app.openshift.io/runtime: vuejs-over-nginx
   spec:
+    host: ''
     to:
       kind: Service
       name: frontend
@@ -87,3 +90,4 @@ items:
     port:
       targetPort: 8080-tcp
     wildcardPolicy: None
+  status: {}
