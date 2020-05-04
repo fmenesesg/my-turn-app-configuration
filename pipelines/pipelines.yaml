@@ -64,12 +64,11 @@ items:
       - name: npm-modules
         workspace: dependencies
     - name: deploy-frontend
-      resources:
-        inputs:
-        - name: git
-          resource: config-repo
-        - name: image
-          resource: image
+      params:
+      - name: gitUrl
+        value: "$(resources.config-repo.url)"
+      - name: imageUrl
+        value: "$(resources.image.url)"
       runAfter:
       - unit-test-and-build-image
       taskRef:
