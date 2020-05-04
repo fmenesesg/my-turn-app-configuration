@@ -68,7 +68,7 @@ items:
       - name: gitUrl
         value: $(resources.config-repo.url)
       - name: imageUrl
-        value: "$(resources.image.url)"
+        value: $(resources.image.url)
       runAfter:
       - unit-test-and-build-image
       taskRef:
