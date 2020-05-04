@@ -34,7 +34,8 @@ spec:
         git config --local user.name "Tekton Pipeline"
         git remote set-url origin "$(git remote get-url origin | sed 's/^https:\/\/\([a-z.]*\)\//git@\1:/')"
         git remote -v
-        git checkout "$(inputs.params.ENVIRONMENT)"
+        git branch -r -v
+        git checkout "origin/$(inputs.params.ENVIRONMENT)"
         cat deployments.yaml | yq w - 'items.(metadata.name==frontend).spec.template.spec.containers[0].image' "$(inputs.resources.image.url)@$MANIFEST" | tee deployments.yaml
         git add deployments.yaml
         git status
