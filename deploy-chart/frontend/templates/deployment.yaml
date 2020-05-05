@@ -24,7 +24,6 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "frontend.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -39,11 +38,11 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: /
+              path: /index.html
               port: http
           readinessProbe:
             httpGet:
-              path: /
+              path: /index.html
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
