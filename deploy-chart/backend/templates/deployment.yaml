@@ -36,6 +36,13 @@ spec:
           image: "{{ .Values.image.repository }}@{{ .Values.image.manifest }}"
         {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: FASTIFY_PORT
+            value: "{{ .Values.service.port }}"
+          - name: FASTIFY_ADDRESS
+            value: 0.0.0.0
+          - name: FASTIFY_LOG_LEVEL
+            value: {{ .Values.loglevel | default "info" }}
           ports:
             - name: 8080-tcp
               containerPort: 8080

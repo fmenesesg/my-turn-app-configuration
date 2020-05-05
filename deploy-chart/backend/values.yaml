@@ -13,6 +13,7 @@ image:
   # manifest: 256:9831jo2j3o1293u0921jjp31j2309j0d9j30
 
 imagePullSecrets: []
+loglevel: info
 
 service:
   type: ClusterIP
