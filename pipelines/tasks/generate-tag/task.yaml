@@ -15,8 +15,7 @@ spec:
       - name: image
         type: image
   steps:
-    - name: create-tag
-      command:
+    - command:
         - buildah
         - tag
         - '--authfile=/root/.docker/config.json'
@@ -24,7 +23,7 @@ spec:
         - $(inputs.resources.image.url)
         - 'docker://$(inputs.resources.image.url)'
       image: 'quay.io/buildah/stable:latest'
-      name: push-image
+      name: create-tag
       resources: {}
       securityContext:
         privileged: true

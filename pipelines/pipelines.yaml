@@ -68,6 +68,9 @@ items:
         inputs:
         - name: image
           resource: image
+      params:
+      - name: LAYER
+        value: frontend
       runAfter:
       - unit-test-and-build-image
       taskRef:
@@ -120,10 +123,11 @@ items:
       - unit-test-and-build-image
       resources:
         inputs:
-        - name: git
-          resource: config-repo
         - name: image
           resource: image
+      params:
+      - name: LAYER
+        value: frontend
       taskRef:
         kind: Task
         name: deploy-with-argocd
@@ -132,10 +136,13 @@ items:
       - deploy-on-develop
       resources:
         inputs:
-        - name: git
-          resource: config-repo
         - name: image
           resource: image
+      params:
+      - name: LAYER
+        value: frontend
+      - name: ENVIRONMENT
+        value: qa
       taskRef:
         kind: Task
         name: deploy-with-argocd
