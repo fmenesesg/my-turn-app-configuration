@@ -15,6 +15,9 @@ spec:
           registry)
         name: TLSVERIFY
         type: string
+      - name: ENVIRONMENT
+        default: develop
+        type: string
     resources:
       - name: git
         type: git
@@ -32,12 +35,12 @@ spec:
       name: get-backend-url
       resources: {}
       script: >
-        export PROTOCOLO=`if [ "$(oc get route backend -o jsonpath='{
-        .spec.tls.termination }')" != "" ]; then echo "https"; else echo "http";
+        export PROTOCOLO=`if [ "$(oc get route backend-$(inputs.params.ENVIRONMENT) -o jsonpath='{
+        .spec.tls.termination }' -n my-turn-app-$(inputs.params.ENVIRONMENT))" != "" ]; then echo "https"; else echo "http";
         fi`
 
-        echo "VUE_APP_API_URL=$PROTOCOLO://$(oc get route backend -o jsonpath='{
-        .spec.host }')" | tee .env.local
+        echo "VUE_APP_API_URL=$PROTOCOLO://$(oc get route backend-$(inputs.params.ENVIRONMENT) -o jsonpath='{
+        .spec.host }' -n my-turn-app-$(inputs.params.ENVIRONMENT))" | tee .env.local
       workingDir: /workspace/git/frontend
     - image: 'quay.io/rshop/npm-alpine:master'
       name: test-lint-and-build
@@ -57,7 +60,7 @@ spec:
         - '-f'
         - Dockerfile
         - '-t'
-        - $(inputs.resources.image.url)
+        - $(inputs.resources.image.url):$(inputs.params.ENVIRONMENT)
         - .
       image: 'quay.io/buildah/stable:latest'
       name: build-image
@@ -73,8 +76,8 @@ spec:
         - push
         - '--authfile=/root/.docker/config.json'
         - '--tls-verify=$(inputs.params.TLSVERIFY)'
-        - $(inputs.resources.image.url)
-        - 'docker://$(inputs.resources.image.url)'
+        - $(inputs.resources.image.url):$(inputs.params.ENVIRONMENT)
+        - 'docker://$(inputs.resources.image.url):$(inputs.params.ENVIRONMENT)'
       image: 'quay.io/buildah/stable:latest'
       name: push-image
       resources: {}
