@@ -28,12 +28,11 @@ spec:
       resources: {}
       script: |
         REPOSITORY="$(echo "$(inputs.resources.image.url)" | sed 's/quay.io\///')"
-        export MANIFEST="$(curl -s "https://quay.io/api/v1/repository/$REPOSITORY/tag/?onlyActiveTags=true&specificTag=$(inputs.params.ENVIRONMENT)" | jq -r '.tags[0].manifest_digest')"
-        env | grep -i manifest | tee env.local
+        echo "$(curl -s "https://quay.io/api/v1/repository/$REPOSITORY/tag/?onlyActiveTags=true&specificTag=$(inputs.params.ENVIRONMENT)" | jq -r '.tags[0].manifest_digest')" | tee manifest
       workingDir: /workspace
     - script: |
         bash
-        source env.local
+        export MANIFEST="$(cat manifest)"
         argocd app set "$(inputs.params.LAYER)-$(inputs.params.ENVIRONMENT)" -p image.manifest="$(inputs.resources.image.url)@$MANIFEST" --project my-turn-app $(inputs.params.FLAGS)
       image: 'argoproj/argocd:v1.0.2'
       name: set-new-manifest
