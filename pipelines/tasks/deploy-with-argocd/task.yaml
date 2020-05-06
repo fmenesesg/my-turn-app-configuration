@@ -13,6 +13,9 @@ spec:
         type: string
       - name: LAYER
         type: string
+      - name: argocd-version
+        default: v1.3.0
+        type: string
     resources:
       - name: image
         type: image
@@ -31,7 +34,7 @@ spec:
         echo "$(curl -s "https://quay.io/api/v1/repository/$REPOSITORY/tag/?onlyActiveTags=true&specificTag=$(inputs.params.ENVIRONMENT)" | jq -r '.tags[0].manifest_digest')" | tee manifest
       workingDir: /workspace
     - name: login
-      image: 'argoproj/argocd:v1.0.2'
+      image: argoproj/argocd:$(params.argocd-version)
       script: |
         if [ -z $ARGOCD_AUTH_TOKEN ]; then
           yes | argocd login $ARGOCD_SERVER --username=$ARGOCD_USERNAME --password=$ARGOCD_PASSWORD $(inputs.params.FLAGS);
@@ -39,7 +42,7 @@ spec:
     - script: |
         export MANIFEST="$(cat manifest)"
         argocd app set "$(inputs.params.LAYER)-$(inputs.params.ENVIRONMENT)" -p image.manifest="$(inputs.resources.image.url)@$MANIFEST" --project my-turn-app $(inputs.params.FLAGS)
-      image: 'argoproj/argocd:v1.0.2'
+      image: argoproj/argocd:$(params.argocd-version)
       name: set-new-manifest
       workingDir: /workspace
       resources: {}
@@ -49,7 +52,7 @@ spec:
       command:
         - /bin/bash
         - '-c'
-      image: 'argoproj/argocd:v1.0.2'
+      image: argoproj/argocd:$(params.argocd-version)
       name: sync-configurations
       resources: {}
     - args:
@@ -57,6 +60,6 @@ spec:
       command:
         - /bin/bash
         - '-c'
-      image: 'argoproj/argocd:v1.0.2'
+      image: argoproj/argocd:$(params.argocd-version)
       name: wait
       resources: {}
