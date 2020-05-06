@@ -66,27 +66,8 @@ items:
     - name: deploy-in-dev
       resources:
         inputs:
-        - name: git
-          resource: config-repo
         - name: image
           resource: image
-      runAfter:
-      - unit-test-and-build-image
-      taskRef:
-        kind: Task
-        name: deploy-with-argocd
-    - name: tag-image-qa
-
-    - name: deploy-in-qa
-      resources:
-        inputs:
-        - name: git
-          resource: config-repo
-        - name: image
-          resource: image
-      params:
-        - name: ENVIRONMENT
-          value: 'release'
       runAfter:
       - unit-test-and-build-image
       taskRef:
@@ -99,7 +80,7 @@ items:
           resource: source-repo
       retries: 2
       runAfter:
-      - deploy-frontend
+      - deploy-in-dev
       taskRef:
         kind: Task
         name: vue-e2e-test
@@ -134,9 +115,21 @@ items:
       workspaces:
       - name: npm-modules
         workspace: dependencies
-    - name: deploy-backend
+    - name: deploy-on-develop
       runAfter:
       - unit-test-and-build-image
+      resources:
+        inputs:
+        - name: git
+          resource: config-repo
+        - name: image
+          resource: image
+      taskRef:
+        kind: Task
+        name: deploy-with-argocd
+    - name: deploy-on-qa
+      runAfter:
+      - deploy-on-develop
       resources:
         inputs:
         - name: git

@@ -11,10 +11,11 @@ spec:
       - default: 'develop'
         name: ENVIRONMENT
         type: string
-      - name: gitUrl
+      - name: LAYER
         type: string
-      - name: imageUrl
-        type: string
+    resources:
+      - name: image
+        type: image
   stepTemplate:
     envFrom:
       - secretRef:
@@ -23,34 +24,24 @@ spec:
     resources: {}
   steps:
     - image: 'quay.io/rshop/toolchain-cli-alpine:v0.1'
-      name: update-deployment
+      name: get-manifest
       resources: {}
       script: |
-        git clone "$(inputs.params.gitUrl)" source-code
-        cd source-code
-        REPOSITORY="$(echo "$(inputs.resources.imageUrl)" | sed 's/quay.io\///')"
-        MANIFEST="$(curl -s "https://quay.io/api/v1/repository/$REPOSITORY/tag/?onlyActiveTags=true&specificTag=$(inputs.params.ENVIRONMENT)" | jq -r '.tags[0].manifest_digest')"
-        git config --local user.email "tekton-pipeline@rshop.com"
-        git config --local user.name "Tekton Pipeline"
-        git remote set-url origin "$(git remote get-url origin | sed 's/^https:\/\/\([a-z.]*\)\//git@\1:/')"
-        git remote -v
-        git branch -r -v
-        git checkout "$(inputs.params.ENVIRONMENT)"
-        cat deployments.yaml | yq w - 'items.(metadata.name==frontend).spec.template.spec.containers[0].image' "$(inputs.resources.image.url)@$MANIFEST" | tee deployments.yaml
-        git add deployments.yaml
-        git status
-        git commit -a -m "Frontend image updated to $(echo "${MANIFEST:8:19}")"
-        git fetch
-        git push
-      securityContext:
-        runAsUser: 0
-      volumeMounts:
-        - mountPath: /root/.ssh
-          name: git-sshkey-volume
+        REPOSITORY="$(echo "$(inputs.resources.image.url)" | sed 's/quay.io\///')"
+        export MANIFEST="$(curl -s "https://quay.io/api/v1/repository/$REPOSITORY/tag/?onlyActiveTags=true&specificTag=$(inputs.params.ENVIRONMENT)" | jq -r '.tags[0].manifest_digest')"
+        env | grep -i manifest | tee env.local
       workingDir: /workspace
+    - script: |
+        bash
+        source env.local
+        argocd app set "$(inputs.params.LAYER)-$(inputs.params.ENVIRONMENT)" -p image.manifest="$(inputs.resources.image.url)@$MANIFEST" --project my-turn-app $(inputs.params.FLAGS)
+      image: 'argoproj/argocd:v1.0.2'
+      name: set-new-manifest
+      workingDir: /workspace
+      resources: {}
     - args:
         - >-
-          argocd app sync "my-turn-app-$(inputs.params.ENVIRONMENT)" --revision $(inputs.params.ENVIRONMENT) $(inputs.params.FLAGS)
+          argocd app sync "$(inputs.params.LAYER)-$(inputs.params.ENVIRONMENT)" --revision $(inputs.params.ENVIRONMENT) --project my-turn-app $(inputs.params.FLAGS)
       command:
         - /bin/bash
         - '-c'
@@ -58,14 +49,10 @@ spec:
       name: sync-configurations
       resources: {}
     - args:
-        - argocd app wait "my-turn-app-$(inputs.params.ENVIRONMENT)" --health $(inputs.params.FLAGS)
+        - argocd app wait "$(inputs.params.LAYER)-$(inputs.params.ENVIRONMENT)" --health --project my-turn-app $(inputs.params.FLAGS)
       command:
         - /bin/bash
         - '-c'
       image: 'argoproj/argocd:v1.0.2'
       name: wait
       resources: {}
-  volumes:
-    - name: git-sshkey-volume
-      secret:
-        secretName: git-sshkey
