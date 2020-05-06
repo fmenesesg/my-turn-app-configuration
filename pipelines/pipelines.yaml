@@ -71,6 +71,8 @@ items:
       params:
       - name: LAYER
         value: frontend
+      - name: FLAGS
+        value: '--insecure'
       runAfter:
       - unit-test-and-build-image
       taskRef:
