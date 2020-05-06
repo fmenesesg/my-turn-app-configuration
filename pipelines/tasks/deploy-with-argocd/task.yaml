@@ -40,15 +40,14 @@ spec:
           yes | argocd login $ARGOCD_SERVER --username=$ARGOCD_USERNAME --password=$ARGOCD_PASSWORD $(inputs.params.FLAGS);
         fi
     - script: |
-        export MANIFEST="$(cat manifest)"
-        argocd app set "$(inputs.params.LAYER)-$(inputs.params.ENVIRONMENT)" -p image.manifest="$(inputs.resources.image.url)@$MANIFEST" --project my-turn-app $(inputs.params.FLAGS)
+        argocd app set "$(inputs.params.LAYER)-$(inputs.params.ENVIRONMENT)" -p image.manifest="$(cat manifest)" --project my-turn-app $(inputs.params.FLAGS)
       image: argoproj/argocd:$(inputs.params.argocd-version)
       name: set-new-manifest
       workingDir: /workspace
       resources: {}
     - args:
         - >-
-          argocd app sync "$(inputs.params.LAYER)-$(inputs.params.ENVIRONMENT)" --revision $(inputs.params.ENVIRONMENT) --project my-turn-app $(inputs.params.FLAGS)
+          argocd app sync "$(inputs.params.LAYER)-$(inputs.params.ENVIRONMENT)" --revision $(inputs.params.ENVIRONMENT) $(inputs.params.FLAGS)
       command:
         - /bin/bash
         - '-c'
@@ -56,7 +55,7 @@ spec:
       name: sync-configurations
       resources: {}
     - args:
-        - argocd app wait "$(inputs.params.LAYER)-$(inputs.params.ENVIRONMENT)" --health --project my-turn-app $(inputs.params.FLAGS)
+        - argocd app wait "$(inputs.params.LAYER)-$(inputs.params.ENVIRONMENT)" --health $(inputs.params.FLAGS)
       command:
         - /bin/bash
         - '-c'
