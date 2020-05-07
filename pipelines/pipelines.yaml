@@ -128,8 +128,10 @@ items:
         - name: image
           resource: image
       params:
-      - name: LAYER
-        value: frontend
+        - name: LAYER
+          value: backend
+        - name: FLAGS
+          value: '--insecure'
       taskRef:
         kind: Task
         name: deploy-with-argocd
@@ -141,10 +143,12 @@ items:
         - name: image
           resource: image
       params:
-      - name: LAYER
-        value: frontend
-      - name: ENVIRONMENT
-        value: qa
+        - name: LAYER
+          value: backend
+        - name: FLAGS
+          value: '--insecure'
+        - name: ENVIRONMENT
+          value: qa
       taskRef:
         kind: Task
         name: deploy-with-argocd
