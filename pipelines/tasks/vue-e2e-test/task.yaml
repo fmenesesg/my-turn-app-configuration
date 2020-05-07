@@ -25,12 +25,9 @@ spec:
       name: get-app-url
       resources: {}
       script: |
-        export PROTOCOLO=`if [ "$(oc get route frontend-$(inputs.params.ENVIRONMENT) -o jsonpath='{
-        .spec.tls.termination }' -n my-turn-app-$(inputs.params.ENVIRONMENT))" != "" ]; then echo "https"; else echo "http";
-        fi`
+        export PROTOCOLO=`if [ "$(oc get route frontend-$(inputs.params.ENVIRONMENT) -o jsonpath='{ .spec.tls.termination }' -n my-turn-app-$(inputs.params.ENVIRONMENT))" != "" ]; then echo "https"; else echo "http"; fi`
 
-        echo "APP_URL=$PROTOCOLO://$(oc get route frontend-$(inputs.params.ENVIRONMENT) -o jsonpath='{
-        .spec.host }' -n my-turn-app-$(inputs.params.ENVIRONMENT))" | tee .env.local
+        echo "APP_URL=$PROTOCOLO://$(oc get route frontend-$(inputs.params.ENVIRONMENT) -o jsonpath='{ .spec.host }' -n my-turn-app-$(inputs.params.ENVIRONMENT))" | tee .env.local
       workingDir: /workspace/git/frontend
     - image: 'quay.io/rshop/npm-alpine:master'
       name: test-lint-and-build
