@@ -7,6 +7,10 @@ spec:
     resources:
       - name: git
         type: git
+    params:
+      - name: ENVIRONMENT
+        default: develop
+        type: string
   steps:
     - image: 'quay.io/rshop/toolchain-cli-alpine:master'
       name: clone-code
@@ -21,16 +25,16 @@ spec:
       name: get-app-url
       resources: {}
       script: |
-        export PROTOCOLO=`if [ "$(oc get route frontend -o jsonpath='{
+        export PROTOCOLO=`if [ "$(oc get route frontend-$(inputs.params.ENVIRONMENT) -o jsonpath='{
 
-        .spec.tls.termination }')" != "" ]; then echo "https"; else echo "http";
+        .spec.tls.termination }' -n my-turn-app-$(inputs.params.ENVIRONMENT))" != "" ]; then echo "https"; else echo "http";
 
         fi`
 
-        echo "APP_URL=$PROTOCOLO://$(oc get route frontend -o jsonpath='{
+        echo "APP_URL=$PROTOCOLO://$(oc get route frontend-$(inputs.params.ENVIRONMENT) -o jsonpath='{
         .spec.host
 
-        }')" | tee .env.local
+        }' -n my-turn-app-$(inputs.params.ENVIRONMENT))" | tee .env.local
       workingDir: /workspace/git/frontend
     - image: 'quay.io/rshop/npm-alpine:master'
       name: test-lint-and-build
